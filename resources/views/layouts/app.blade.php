@@ -21,6 +21,7 @@
     <link rel="stylesheet" href="{{ asset('css/app.css') }}?v={{ @filemtime(public_path('css/app.css')) }}">
     <link rel="stylesheet" href="{{ asset('css/templates.css') }}?v={{ @filemtime(public_path('css/templates.css')) }}">
     <link rel="stylesheet" href="{{ asset('css/auth.css') }}?v={{ @filemtime(public_path('css/auth.css')) }}">
+    <script src="{{ asset('js/password-toggle.js') }}?v={{ @filemtime(public_path('js/password-toggle.js')) }}" defer></script>
 </head>
 <body>
     <a href="#main" class="skip-link">Skip to main content</a>
