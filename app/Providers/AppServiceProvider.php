@@ -6,7 +6,9 @@ use App\Support\Icons;
 use App\Support\Tpl;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
+use App\Mail\HttpApiTransport;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
@@ -15,11 +17,11 @@ class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        // PortfolioCraft only needs the Railway PostgreSQL "portfolios" table.
-        // Sessions and cache use plain files, so no other tables are required.
+        // Login sessions are stored in the Railway PostgreSQL "sessions" table, so people stay
+        // logged in even when Railway restarts or redeploys the app (plain files would be wiped).
         config([
             'database.default' => 'pgsql',
-            'session.driver' => 'file',
+            'session.driver' => env('SESSION_DRIVER', 'database'),
             'cache.default' => 'file',
             'queue.default' => 'sync',
         ]);
@@ -42,13 +44,20 @@ class AppServiceProvider extends ServiceProvider
 
         if ($this->app->environment('production')) {
             URL::forceScheme('https');
+            config(['session.secure' => true]); // the login cookie is only sent over HTTPS
         }
+
+        // Email through an HTTPS API (used for the "Forgot password" email).
+        Mail::extend('http_api', fn (array $config) => new HttpApiTransport(
+            (string) ($config['provider'] ?? 'resend'),
+            $config['key'] ?? null
+        ));
 
         $this->ensureDatabaseIsReady();
     }
 
     /**
-     * Creates the portfolios table when the server starts, if it does not exist yet.
+     * Runs the database migrations when the server starts (portfolios table, user accounts, sessions).
      * The SQL is "CREATE TABLE IF NOT EXISTS", so existing data is never touched.
      * A small marker file keeps this from running on every request.
      */
@@ -58,7 +67,7 @@ class AppServiceProvider extends ServiceProvider
             return;
         }
 
-        $ready = storage_path('framework/portfolios-ready');
+        $ready = storage_path('framework/portfolios-ready-v2');
         $failed = storage_path('framework/portfolios-db-failed');
 
         if (File::exists($ready)) {

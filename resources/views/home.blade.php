@@ -5,17 +5,20 @@
 
 @section('content')
 @php
+    // Guests start by creating an account; logged-in users go straight to the form.
+    $startUrl = auth()->check() ? route('portfolios.create') : route('register');
+    $startLabel = auth()->check() ? 'Create Portfolio' : 'Get Started';
     $stats = [
         ['3', 'Professional templates'],
         ['7', 'Portfolio sections'],
-        ['0', 'Sign-ups needed'],
+        ['1', 'Private account'],
         ['Free', 'To create and edit'],
     ];
 
     $features = [
         ['profile', 'Complete profile builder', 'Add your details, education, skills, projects, work experience, and links in one organized form.'],
         ['layout', 'Three polished templates', 'Switch between Simple, Modern, and Creative. Your information stays exactly the same.'],
-        ['cloud', 'Saved online', 'Your portfolio lives in a cloud database, so it is still there when you come back.'],
+        ['cloud', 'Saved online', 'Your portfolio lives in a cloud database, so it is still there when you log back in.'],
         ['edit', 'Edit any time', 'Update your details or change the template whenever you like.'],
         ['device', 'Looks good everywhere', 'Layouts adapt to desktop, tablet, and mobile, in both light and dark mode.'],
         ['bolt', 'Ready in minutes', 'Fill in one form, pick a style, and see a finished portfolio right away.'],
@@ -37,10 +40,10 @@
 
     $faq = [
         ['Is PortfolioCraft free to use?', 'Yes. There are no payments or subscriptions in this project. You can create, edit, and delete portfolios at no cost.'],
-        ['Do I need to create an account?', 'No. Fill in the form and your portfolio is saved online. You can find it again any time on the Manage page.'],
+        ['Do I need to create an account?', 'Yes. Create a free account with your email and a password, then log in any time to find your portfolios on the Manage page.'],
         ['Can I change my template later?', 'Yes. Open the preview and use the template buttons, or choose Change Template from the Manage page. Your information stays exactly the same.'],
         ['Does it work on my phone?', 'Yes. The forms, the preview, and all three templates adjust to phones, tablets, and desktop screens.'],
-        ['Is my information private?', 'Portfolios are stored in an online database and listed on the Manage page. Because this is a school project without sign-in, please avoid entering private details you would not want others to see.'],
+        ['Is my information private?', 'Yes. Your password is stored only as a secure hash, and every portfolio belongs to one account. Other people cannot open, edit, or delete your portfolios.'],
     ];
 @endphp
 
@@ -53,11 +56,11 @@
             <h1 id="hero-title" class="hm-title">Build a portfolio that shows <span class="grad">your best work</span></h1>
             <p class="hm-sub">Create your professional portfolio, choose your style, and showcase your work. Fill in one simple form, pick a template, and see a finished portfolio in minutes.</p>
             <div class="hm-actions">
-                <a href="{{ route('portfolios.create') }}" class="btn btn-primary btn-large">Create Portfolio {!! $icons->svg('arrow') !!}</a>
+                <a href="{{ $startUrl }}" class="btn btn-primary btn-large">{{ $startLabel }} {!! $icons->svg('arrow') !!}</a>
                 <a href="#templates" class="btn btn-secondary btn-large">View Templates</a>
             </div>
             <ul class="hm-trust">
-                <li>No sign-up needed</li>
+                <li>Private to your account</li>
                 <li>Saved online</li>
                 <li>Edit any time</li>
             </ul>
@@ -149,7 +152,6 @@
                                     @endforeach
                                 </ul>
                                 <p>{{ $showcase[$id] }}</p>
-                                <a href="{{ route('portfolios.create') }}" class="hm-link">Start creating {!! $icons->svg('arrow') !!}</a>
                             </div>
                         </article>
                     @endforeach
@@ -194,7 +196,6 @@
                     <span class="eyebrow">How it works</span>
                     <h2 id="how-title">From empty page to <span class="grad">finished portfolio</span></h2>
                     <p>Three simple steps. You are always one click away from editing.</p>
-                    <a href="{{ route('portfolios.create') }}" class="btn btn-primary btn-large">Get started {!! $icons->svg('arrow') !!}</a>
                 </div>
                 <ol class="checks">
                     @foreach ($steps as $step)
@@ -227,11 +228,50 @@
     <section class="hm-final" aria-labelledby="cta-title">
         <h2 id="cta-title">Start your <span class="grad">portfolio today</span></h2>
         <p>It only takes a few minutes, and you can edit everything later.</p>
-        <div class="hm-actions">
-            <a href="{{ route('portfolios.create') }}" class="btn btn-primary btn-large">Create Portfolio {!! $icons->svg('arrow') !!}</a>
-            <a href="{{ route('portfolios.index') }}" class="btn btn-secondary btn-large">Manage Portfolios</a>
-        </div>
     </section>
 
 </div>
+
+{{-- Highlights the menu link of the section you are looking at (Home / Features / Templates / How it works). --}}
+<script>
+(function () {
+    var ids = ['features', 'templates', 'how'];
+    var links = document.querySelectorAll('[data-nav]');
+    var current = null;
+    var waiting = false;
+
+    function mark(key) {
+        if (key === current) { return; }
+        current = key;
+        links.forEach(function (a) {
+            var on = a.getAttribute('data-nav') === key;
+            a.classList.toggle('active', on);
+            if (on) { a.setAttribute('aria-current', key === 'home' ? 'page' : 'location'); }
+            else { a.removeAttribute('aria-current'); }
+        });
+    }
+
+    function update() {
+        waiting = false;
+        var line = window.innerHeight * 0.35;
+        var key = 'home';
+        var best = -Infinity;
+        ids.forEach(function (id) {
+            var el = document.getElementById(id);
+            if (!el) { return; }
+            var top = el.getBoundingClientRect().top;
+            if (top <= line && top > best) { best = top; key = id; }
+        });
+        mark(key);
+    }
+
+    function onScroll() {
+        if (!waiting) { waiting = true; window.requestAnimationFrame(update); }
+    }
+
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onScroll);
+    update();
+})();
+</script>
 @endsection

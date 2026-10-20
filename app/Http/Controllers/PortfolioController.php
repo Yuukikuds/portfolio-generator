@@ -16,11 +16,26 @@ use Illuminate\View\View;
 
 class PortfolioController extends Controller
 {
+    /**
+     * SECURITY: every portfolio lookup goes through the logged-in user's own portfolios.
+     * If the id belongs to someone else (or does not exist) the result is the same 404 page,
+     * so changing the number in the URL never shows another person's portfolio.
+     */
+    private function mine(string $id): Portfolio
+    {
+        return auth()->user()->portfolios()->findOrFail($id);
+    }
+
+    private function mineQuery()
+    {
+        return auth()->user()->portfolios();
+    }
+
     // ------------------------------------------------------------------ list (Manage page)
 
     public function index(): View
     {
-        $portfolios = Portfolio::query()
+        $portfolios = $this->mineQuery()
             ->select(['id', 'full_name', 'email', 'selected_template', 'created_at', 'updated_at'])
             ->orderByDesc('updated_at')
             ->get();
@@ -42,7 +57,7 @@ class PortfolioController extends Controller
 
     public function edit(string $id): Response
     {
-        $portfolio = Portfolio::findOrFail($id);
+        $portfolio = $this->mine($id);
         session(['last_portfolio_id' => $portfolio->id]);
 
         return $this->renderForm($portfolio, PortfolioForm::fromModel($portfolio));
@@ -50,7 +65,7 @@ class PortfolioController extends Controller
 
     public function update(Request $request, string $id): Response|RedirectResponse
     {
-        return $this->save($request, Portfolio::findOrFail($id));
+        return $this->save($request, $this->mine($id));
     }
 
     private function renderForm(?Portfolio $portfolio, array $form, ?MessageBag $errors = null, int $status = 200): Response
@@ -111,7 +126,7 @@ class PortfolioController extends Controller
                 $portfolio->update($attributes);
                 $message = 'Portfolio updated successfully.';
             } else {
-                $portfolio = Portfolio::create($attributes + ['selected_template' => 'simple']);
+                $portfolio = $this->mineQuery()->create($attributes + ['selected_template' => 'simple']);
                 $message = 'Portfolio saved successfully.';
             }
         } catch (\Throwable $e) {
@@ -139,7 +154,7 @@ class PortfolioController extends Controller
     public function templatesRedirect(): RedirectResponse
     {
         $id = session('last_portfolio_id');
-        if ($id && Portfolio::whereKey($id)->exists()) {
+        if ($id && $this->mineQuery()->whereKey($id)->exists()) {
             return redirect()->route('templates', $id);
         }
 
@@ -148,7 +163,7 @@ class PortfolioController extends Controller
 
     public function templates(string $id): View
     {
-        $portfolio = Portfolio::findOrFail($id);
+        $portfolio = $this->mine($id);
         session(['last_portfolio_id' => $portfolio->id]);
 
         return view('portfolios.templates', [
@@ -159,7 +174,7 @@ class PortfolioController extends Controller
 
     public function saveTemplate(Request $request, string $id): RedirectResponse
     {
-        $portfolio = Portfolio::findOrFail($id);
+        $portfolio = $this->mine($id);
 
         $data = $request->validate(
             ['template' => ['required', Rule::in(array_keys(Tpl::TEMPLATES))]],
@@ -175,7 +190,7 @@ class PortfolioController extends Controller
 
     public function preview(Request $request, string $id): View
     {
-        $portfolio = Portfolio::findOrFail($id);
+        $portfolio = $this->mine($id);
         session(['last_portfolio_id' => $portfolio->id]);
 
         $view = (string) $request->query('view', '');
@@ -192,7 +207,7 @@ class PortfolioController extends Controller
 
     public function savePreview(Request $request, string $id): RedirectResponse
     {
-        $portfolio = Portfolio::findOrFail($id);
+        $portfolio = $this->mine($id);
 
         $data = $request->validate(
             ['template' => ['required', Rule::in(array_keys(Tpl::TEMPLATES))]],
@@ -201,19 +216,20 @@ class PortfolioController extends Controller
 
         $portfolio->update(['selected_template' => $data['template']]);
 
-        return redirect()->route('preview', $portfolio->id)->with('status', 'Portfolio updated successfully.');
+        // "saved" shows the pop-up notification (see the toast in layouts/app.blade.php).
+        return redirect()->route('portfolios.index')->with('saved', 'Your portfolio was saved successfully!');
     }
 
     // ------------------------------------------------------------------ delete
 
     public function confirmDelete(string $id): View
     {
-        return view('portfolios.confirm-delete', ['portfolio' => Portfolio::findOrFail($id)]);
+        return view('portfolios.confirm-delete', ['portfolio' => $this->mine($id)]);
     }
 
     public function destroy(string $id): RedirectResponse
     {
-        $portfolio = Portfolio::findOrFail($id);
+        $portfolio = $this->mine($id);
         $portfolio->delete();
 
         if ((string) session('last_portfolio_id') === (string) $id) {
@@ -227,7 +243,7 @@ class PortfolioController extends Controller
 
     public function apiIndex(): JsonResponse
     {
-        $portfolios = Portfolio::query()
+        $portfolios = $this->mineQuery()
             ->select(['id', 'full_name', 'email', 'selected_template', 'created_at', 'updated_at'])
             ->orderByDesc('updated_at')
             ->get();
@@ -237,6 +253,6 @@ class PortfolioController extends Controller
 
     public function apiShow(string $id): JsonResponse
     {
-        return response()->json(['portfolio' => Portfolio::findOrFail($id)]);
+        return response()->json(['portfolio' => $this->mine($id)]);
     }
 }

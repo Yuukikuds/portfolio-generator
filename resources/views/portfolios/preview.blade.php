@@ -10,15 +10,14 @@
 @enderror
 
 <div class="preview-bar">
-    <a href="{{ route('portfolios.index') }}" class="btn btn-ghost btn-back">Back to Manage</a>
+    <a href="{{ route('templates', $portfolio->id) }}" class="btn btn-ghost btn-back">Back to Templates</a>
     <div class="preview-bar-actions">
         <a href="{{ route('portfolios.edit', $portfolio->id) }}" class="btn btn-secondary">Edit Information</a>
-        <a href="{{ route('templates', $portfolio->id) }}" class="btn btn-secondary">Change Template</a>
         <form method="POST" action="{{ route('preview.save', $portfolio->id) }}" class="inline-form">
             @csrf
             @method('PATCH')
             <input type="hidden" name="template" value="{{ $view }}">
-            <button type="submit" class="btn btn-primary" @disabled(! $changed)>Save / Update</button>
+            <button type="submit" class="btn btn-primary">Save Portfolio</button>
         </form>
         <a href="{{ route('portfolios.confirm-delete', $portfolio->id) }}" class="btn btn-danger-outline">Delete Portfolio</a>
     </div>
@@ -32,9 +31,9 @@
     </div>
     <span class="switcher-status" role="status">
         @if ($changed)
-            Showing {{ $tpl->name($view) }} (not saved yet). Click Save / Update to keep it.
+            Showing {{ $tpl->name($view) }} (not saved yet). Click Save Portfolio to keep it.
         @else
-            Saved template: {{ $tpl->name($portfolio->selected_template) }}
+            Saved template: {{ $tpl->name($portfolio->selected_template) }}. Happy with it? Click Save Portfolio to finish.
         @endif
     </span>
 </div>

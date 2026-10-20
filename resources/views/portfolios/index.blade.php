@@ -8,7 +8,6 @@
         <h1>Manage Portfolios</h1>
         <p>{{ $portfolios->count() }} saved {{ \Illuminate\Support\Str::plural('portfolio', $portfolios->count()) }}</p>
     </div>
-    <a href="{{ route('portfolios.create') }}" class="btn btn-primary">Create New Portfolio</a>
 </div>
 
 @if ($portfolios->isEmpty())

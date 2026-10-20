@@ -194,7 +194,7 @@ class PortfolioForm
         $year = ['nullable', 'regex:/^(\d{4}|present)$/i'];
 
         $rules = [
-            'full_name' => ['required', 'string', 'max:100'],
+            'full_name' => ['required', 'string', 'max:100', 'regex:/^[\p{L}\p{M}][\p{L}\p{M} .\x27’-]*$/u'],
             'email' => ['required', 'string', 'max:150', 'email'],
             'contact_number' => ['nullable', 'string', 'regex:/^[0-9+()\-.\s]{7,30}$/'],
             'address' => ['nullable', 'string', 'max:255'],
@@ -236,6 +236,7 @@ class PortfolioForm
             'in' => 'Please choose one of the listed options.',
 
             'full_name.required' => 'Please enter your full name.',
+            'full_name.regex' => 'Only letters are allowed in the name. Please remove any numbers or symbols.',
             'email.required' => 'Please enter your email address.',
             'email.email' => 'Please enter a valid email address.',
             'contact_number.regex' => 'Please enter a valid contact number (digits, +, -, spaces).',

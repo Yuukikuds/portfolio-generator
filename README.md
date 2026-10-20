@@ -12,6 +12,8 @@ This version is written in **PHP (Laravel) and Blade only**. It uses the same **
 
 ## Features
 
+- User accounts: Get Started (register), Log in, Forgot password (email reset link), Log out
+- Every portfolio belongs to one account; other users cannot open, edit, or delete it
 - Home page, portfolio form, template selection, preview, and manage pages
 - Personal information, profile picture, education, skills, projects, work experience, and social links (multiple entries with Add / Remove buttons)
 - Server-side validation with friendly error messages
@@ -80,13 +82,19 @@ The migration uses `CREATE TABLE IF NOT EXISTS`, so portfolios created by the ea
 | Method | URL | Purpose |
 |---|---|---|
 | GET | `/` | Home |
+| GET, POST | `/get-started` | Create an account (guests only) |
+| GET, POST | `/login` | Log in (guests only) |
+| GET, POST | `/forgot-password` | Request a password reset email (guests only) |
+| GET, POST | `/reset-password/{token}`, `/reset-password` | Choose a new password (guests only) |
+| POST | `/logout` | Log out |
 | GET | `/create`, POST `/portfolios` | Create (CREATE) |
 | GET | `/edit/{id}`, PUT `/portfolios/{id}` | Edit (UPDATE) |
 | GET | `/manage` | List portfolios (READ) |
 | GET | `/templates/{id}`, POST `/templates/{id}` | Choose a template |
 | GET | `/preview/{id}`, PATCH `/preview/{id}` | Preview, save the template |
 | GET | `/portfolios/{id}/delete`, DELETE `/portfolios/{id}` | Confirm and delete (DELETE) |
-| GET | `/api/health`, `/api/portfolios`, `/api/portfolios/{id}` | Read-only JSON for testing |
+| GET | `/api/health` | Public database check (no data) |
+| GET | `/api/portfolios`, `/api/portfolios/{id}` | Read-only JSON of the logged-in user's own portfolios |
 | GET | `/up` | Laravel health check |
 
 ## Local installation (Windows)
@@ -107,6 +115,10 @@ The migration uses `CREATE TABLE IF NOT EXISTS`, so portfolios created by the ea
 | `DB_CONNECTION` | `pgsql` |
 | `DB_URL` | Railway PostgreSQL connection URL (never commit it). On Railway use `${{Postgres.DATABASE_URL}}` |
 | `LOG_CHANNEL` | `stderr` on Railway so logs appear in the dashboard |
+| `SESSION_DRIVER` | `database` (login sessions are kept in PostgreSQL) |
+| `MAIL_MAILER` | `log` locally (reset emails go to `storage/logs/laravel.log`), `http_api` on Railway |
+| `MAIL_API_PROVIDER`, `MAIL_API_KEY` | `resend` or `brevo`, and that service's API key |
+| `MAIL_FROM_ADDRESS`, `MAIL_FROM_NAME` | The sender shown on the reset email |
 
 ## Railway deployment
 
@@ -130,3 +142,12 @@ The migration uses `CREATE TABLE IF NOT EXISTS`, so portfolios created by the ea
 | Database connection refused | Locally use the **public** Railway URL in `DB_URL`; on Railway use `${{Postgres.DATABASE_URL}}` |
 | Photos are not resized | Enable the `gd` extension (locally in `php.ini`, on Railway set `RAILPACK_PHP_EXTENSIONS=gd`) |
 | Styles missing | Run `php artisan optimize:clear` and refresh |
+
+## Accounts and security
+
+- Passwords are hashed with bcrypt (Laravel `hashed` cast); plain passwords are never stored.
+- Login uses Laravel's session guard, a new session id after login (anti session fixation), and a limit of 5 wrong tries per minute.
+- Every page and action that touches portfolios is behind the `auth` middleware and looks portfolios up **only through the logged-in user** (`$user->portfolios()`), so another user's id in the URL returns a 404 page.
+- Forgot password sends a one-time link valid for 60 minutes. The page gives the same answer whether or not the email exists. Changing the password logs the account out everywhere else.
+- Forms use CSRF tokens; the login cookie is `HttpOnly`, `SameSite=Lax`, and `Secure` in production.
+- Portfolios created before accounts existed have no owner (`user_id` is empty); they are kept in the database but are not shown to anyone.

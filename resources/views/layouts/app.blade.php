@@ -20,11 +20,20 @@
 
     <link rel="stylesheet" href="{{ asset('css/app.css') }}?v={{ @filemtime(public_path('css/app.css')) }}">
     <link rel="stylesheet" href="{{ asset('css/templates.css') }}?v={{ @filemtime(public_path('css/templates.css')) }}">
+    <link rel="stylesheet" href="{{ asset('css/auth.css') }}?v={{ @filemtime(public_path('css/auth.css')) }}">
 </head>
 <body>
     <a href="#main" class="skip-link">Skip to main content</a>
 
     @include('partials.navbar')
+
+    {{-- Pop-up notification after "Save Portfolio" (fades out by itself, no JavaScript). --}}
+    @if (session('saved'))
+        <div class="toast" role="status" aria-live="polite">
+            <span class="toast-icon" aria-hidden="true">&#10003;</span>
+            <span>{{ session('saved') }}</span>
+        </div>
+    @endif
 
     {{-- Pages that paint edge to edge (the home page) set @section('bare'). --}}
     @hasSection('bare')

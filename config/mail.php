@@ -65,6 +65,13 @@ return [
             'transport' => 'resend',
         ],
 
+        // PortfolioCraft: sends mail through an HTTPS API (works on Railway Free/Hobby, where SMTP is blocked).
+        // See app/Mail/HttpApiTransport.php. MAIL_API_PROVIDER = resend or brevo.
+        'http_api' => [
+            'transport' => 'http_api',
+            'provider' => env('MAIL_API_PROVIDER', 'resend'),
+            'key' => env('MAIL_API_KEY'),
+        ],
         'sendmail' => [
             'transport' => 'sendmail',
             'path' => env('MAIL_SENDMAIL_PATH', '/usr/sbin/sendmail -bs -i'),
